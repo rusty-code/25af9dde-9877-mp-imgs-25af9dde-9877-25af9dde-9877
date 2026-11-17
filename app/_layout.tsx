@@ -5,6 +5,10 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { DatabaseProvider } from '../context/DatabaseContext';
+import { configureNotificationHandler } from '../services/notifications';
+
+// Показываем уведомления о приближении, пока приложение на переднем плане.
+configureNotificationHandler();
 
 export default function RootLayout() {
   return (

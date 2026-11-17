@@ -1,4 +1,4 @@
-import type { MapMarker, Marker } from '../types';
+import type { MapMarker, Marker, UserLocation } from '../types';
 
 /** Начальный центр карты (Москва) и зум. */
 export const DEFAULT_CENTER = { latitude: 55.751244, longitude: 37.618423 };
@@ -9,6 +9,8 @@ export const DEFAULT_ZOOM = 12;
  *
  * Внутри WebView доступны:
  * - `window.__setMarkers(markers)` — обновление маркеров из React Native;
+ * - `window.__setUserLocation(location)` — обновление позиции пользователя;
+ * - `window.__centerOnUser(zoom)` — центрирование карты на пользователе;
  * - `window.ReactNativeWebView.postMessage(...)` — события в React Native.
  */
 export function buildMapHtml(): string {
@@ -89,6 +91,89 @@ export function buildMapHtml(): string {
         var markersLayer = L.layerGroup().addTo(map);
         var markersById = {};
 
+        // Слой текущего местоположения пользователя: точка + круг точности.
+        var userLocationLayer = L.layerGroup().addTo(map);
+        var userDot = null;
+        var userAccuracyCircle = null;
+        var lastUserLocation = null;
+
+        function renderUserLocation(location) {
+          // Позиция пропала — убираем точку и круг точности.
+          if (!location) {
+            lastUserLocation = null;
+            userLocationLayer.clearLayers();
+            userDot = null;
+            userAccuracyCircle = null;
+            return;
+          }
+
+          if (
+            typeof location.latitude !== 'number' ||
+            typeof location.longitude !== 'number'
+          ) {
+            return;
+          }
+
+          lastUserLocation = location;
+          var latlng = [location.latitude, location.longitude];
+          var accuracy =
+            typeof location.accuracy === 'number' && location.accuracy > 0
+              ? location.accuracy
+              : 0;
+
+          if (!userDot) {
+            userDot = L.circleMarker(latlng, {
+              radius: 7,
+              color: '#ffffff',
+              weight: 2,
+              fillColor: '#1f6feb',
+              fillOpacity: 1,
+            }).addTo(userLocationLayer);
+          } else {
+            userDot.setLatLng(latlng);
+          }
+
+          if (accuracy > 0) {
+            if (!userAccuracyCircle) {
+              userAccuracyCircle = L.circle(latlng, {
+                radius: accuracy,
+                color: '#1f6feb',
+                weight: 1,
+                fillColor: '#1f6feb',
+                fillOpacity: 0.12,
+              }).addTo(userLocationLayer);
+            } else {
+              userAccuracyCircle.setLatLng(latlng);
+              userAccuracyCircle.setRadius(accuracy);
+            }
+          } else if (userAccuracyCircle) {
+            userLocationLayer.removeLayer(userAccuracyCircle);
+            userAccuracyCircle = null;
+          }
+        }
+
+        window.__setUserLocation = function (location) {
+          try {
+            renderUserLocation(location);
+          } catch (error) {
+            fail(error && error.message ? error.message : error);
+          }
+        };
+
+        window.__centerOnUser = function (zoom) {
+          try {
+            if (!lastUserLocation) {
+              return;
+            }
+            map.setView(
+              [lastUserLocation.latitude, lastUserLocation.longitude],
+              typeof zoom === 'number' ? zoom : 15
+            );
+          } catch (error) {
+            fail(error && error.message ? error.message : error);
+          }
+        };
+
         function clearMarkers() {
           markersLayer.clearLayers();
           markersById = {};
@@ -139,6 +224,10 @@ export function buildMapHtml(): string {
           if (Date.now() - lastSyntheticLongPressAt < 1000) {
             return;
           }
+          // contextmenu может прийти раньше таймера 600 мс: гасим таймер и помечаем
+          // момент, чтобы второе событие не ушло.
+          cancelPress();
+          lastSyntheticLongPressAt = Date.now();
           post({
             type: 'longpress',
             latitude: event.latlng.lat,
@@ -151,6 +240,8 @@ export function buildMapHtml(): string {
         var pressStart = null;
         var pressStartLatLng = null;
 
+        // Объявлена как function declaration: поднимается, поэтому безопасно вызывать
+        // её из обработчика contextmenu, зарегистрированного выше.
         function cancelPress() {
           if (pressTimer !== null) {
             clearTimeout(pressTimer);
@@ -257,6 +348,23 @@ export function buildSetMarkersScript(markers: Marker[]): string {
     )
   );
   return `window.__setMarkers && window.__setMarkers(${payload}); true;`;
+}
+
+/** Скрипт для передачи позиции пользователя в WebView. */
+export function buildSetUserLocationScript(location: UserLocation | null): string {
+  const payload = location
+    ? JSON.stringify({
+        latitude: location.latitude,
+        longitude: location.longitude,
+        accuracy: location.accuracy ?? 0,
+      })
+    : 'null';
+  return `window.__setUserLocation && window.__setUserLocation(${payload}); true;`;
+}
+
+/** Скрипт для центрирования карты на пользователе. */
+export function buildCenterOnUserScript(zoom = 15): string {
+  return `window.__centerOnUser && window.__centerOnUser(${zoom}); true;`;
 }
 
 /** Скрипт для первичного центрирования карты по маркерам. */

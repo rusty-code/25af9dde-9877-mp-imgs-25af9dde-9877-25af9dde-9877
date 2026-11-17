@@ -11,13 +11,17 @@ import { WebView as RNWebView, type WebViewMessageEvent, type WebViewProps } fro
 
 import {
   buildCenterOnMarkersScript,
+  buildCenterOnUserScript,
   buildMapHtml,
   buildSetMarkersScript,
+  buildSetUserLocationScript,
 } from '../lib/mapHtml';
-import { parseMapMessage, type Marker } from '../types';
+import { parseMapMessage, type Marker, type UserLocation } from '../types';
 
 export interface MapProps {
   markers: Marker[];
+  /** Текущее местоположение пользователя; `null` — позиция ещё неизвестна. */
+  userLocation?: UserLocation | null;
   onLongPress: (latitude: number, longitude: number) => void;
   onMarkerPress: (id: string) => void;
 }
@@ -31,8 +35,17 @@ const WebView = RNWebView as unknown as React.ComponentType<
   WebViewProps & { ref?: React.Ref<WebViewHandle> }
 >;
 
+// HTML карты не зависит от состояния, поэтому создаём его один раз:
+// иначе на каждый рендер (каждое обновление позиции) выделялась бы новая строка.
+const MAP_SOURCE = { html: buildMapHtml() };
 
-export default function Map({ markers, onLongPress, onMarkerPress }: MapProps) {
+
+export default function Map({
+  markers,
+  userLocation = null,
+  onLongPress,
+  onMarkerPress,
+}: MapProps) {
   const webViewRef = useRef<WebViewHandle | null>(null);
   const isReadyRef = useRef(false);
   const didCenterRef = useRef(false);
@@ -50,6 +63,30 @@ export default function Map({ markers, onLongPress, onMarkerPress }: MapProps) {
     [inject]
   );
 
+  const sendUserLocation = useCallback(
+    (location: UserLocation | null) => {
+      inject(buildSetUserLocationScript(location));
+    },
+    [inject]
+  );
+
+  // Первое центрирование: по маркерам, а если их нет — на пользователе.
+  const centerOnce = useCallback(
+    (list: Marker[], location: UserLocation | null) => {
+      if (didCenterRef.current) {
+        return;
+      }
+      if (list.length > 0) {
+        didCenterRef.current = true;
+        inject(buildCenterOnMarkersScript(list));
+      } else if (location) {
+        didCenterRef.current = true;
+        inject(buildCenterOnUserScript());
+      }
+    },
+    [inject]
+  );
+
   const handleMessage = useCallback(
     (event: WebViewMessageEvent) => {
       const message = parseMapMessage(event.nativeEvent.data);
@@ -62,10 +99,8 @@ export default function Map({ markers, onLongPress, onMarkerPress }: MapProps) {
           isReadyRef.current = true;
           setError(null);
           sendMarkers(markers);
-          if (!didCenterRef.current && markers.length > 0) {
-            didCenterRef.current = true;
-            inject(buildCenterOnMarkersScript(markers));
-          }
+          sendUserLocation(userLocation);
+          centerOnce(markers, userLocation);
           break;
         }
         case 'longpress': {
@@ -90,7 +125,15 @@ export default function Map({ markers, onLongPress, onMarkerPress }: MapProps) {
           break;
       }
     },
-    [inject, markers, onLongPress, onMarkerPress, sendMarkers]
+    [
+      centerOnce,
+      markers,
+      onLongPress,
+      onMarkerPress,
+      sendMarkers,
+      sendUserLocation,
+      userLocation,
+    ]
   );
 
   useEffect(() => {
@@ -99,9 +142,17 @@ export default function Map({ markers, onLongPress, onMarkerPress }: MapProps) {
     }
   }, [markers, sendMarkers]);
 
+  useEffect(() => {
+    if (isReadyRef.current) {
+      sendUserLocation(userLocation);
+      centerOnce(markers, userLocation);
+    }
+  }, [centerOnce, markers, sendUserLocation, userLocation]);
+
   const retry = useCallback(() => {
     setError(null);
     isReadyRef.current = false;
+    didCenterRef.current = false;
     setReloadKey((value) => value + 1);
   }, []);
 
@@ -110,7 +161,7 @@ export default function Map({ markers, onLongPress, onMarkerPress }: MapProps) {
       <WebView
         key={reloadKey}
         ref={webViewRef}
-        source={{ html: buildMapHtml() }}
+        source={MAP_SOURCE}
         originWhitelist={['*']}
         javaScriptEnabled
         domStorageEnabled

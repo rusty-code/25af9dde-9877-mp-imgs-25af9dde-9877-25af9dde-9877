@@ -35,6 +35,14 @@ export interface MapMarker {
   title: string;
 }
 
+/** Текущее местоположение пользователя (для карты). */
+export interface UserLocation {
+  latitude: number;
+  longitude: number;
+  /** Радиус точности в метрах (если известен). */
+  accuracy: number | null;
+}
+
 /** Параметры маршрута экрана деталей маркера. */
 export interface MarkerDetailsParams {
   id: string;

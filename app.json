@@ -32,7 +32,14 @@
           "microphonePermission": false
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Приложению нужен доступ к геолокации, чтобы показывать ваше местоположение на карте и уведомлять о приближении к сохранённым меткам."
+        }
+      ],
+      "expo-notifications"
     ]
   }
 }
