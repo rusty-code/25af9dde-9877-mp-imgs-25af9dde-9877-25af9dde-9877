@@ -23,27 +23,16 @@ import { initDatabase } from '../database/schema';
 import type { Marker, MarkerImage } from '../types';
 
 export interface DatabaseContextValue {
-  /** Текущий список маркеров (обновляется после операций с БД). */
   markers: Marker[];
-  /** Создаёт маркер и возвращает его id. */
   addMarker: (latitude: number, longitude: number) => Promise<number>;
-  /** Удаляет маркер вместе со связанными изображениями. */
   deleteMarker: (id: number) => Promise<void>;
-  /** Читает все маркеры и обновляет состояние контекста. */
   getMarkers: () => Promise<Marker[]>;
-  /** Добавляет изображение к маркеру. */
   addImage: (markerId: number, uri: string) => Promise<void>;
-  /** Удаляет изображение по id. */
   deleteImage: (id: number) => Promise<void>;
-  /** Читает изображения конкретного маркера. */
   getMarkerImages: (markerId: number) => Promise<MarkerImage[]>;
-  /** Идёт открытие БД и первичная загрузка маркеров. */
   isLoading: boolean;
-  /** Последняя ошибка слоя БД. */
   error: Error | null;
-  /** Сбрасывает отображаемую ошибку. */
   clearError: () => void;
-  /** Повторяет инициализацию БД после ошибки. */
   retryInit: () => void;
 }
 
@@ -124,7 +113,6 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
     setError(null);
   }, []);
 
-  /** Выполняет операцию с открытой БД и централизованно обрабатывает ошибки. */
   const runWithDb = useCallback(
     async function runWithDb<T>(
       task: (database: SQLiteDatabase) => Promise<T>
@@ -257,7 +245,6 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/** Доступ к локальной БД. Бросает ошибку вне провайдера. */
 export function useDatabase(): DatabaseContextValue {
   const context = useContext(DatabaseContext);
   if (!context) {

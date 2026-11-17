@@ -16,11 +16,8 @@ function toErrorMessage(error: unknown): string {
   return String(error);
 }
 
-/** Открывает системные настройки приложения. */
 function openSettings() {
-  Linking.openSettings().catch(() => {
-    // В редких случаях настройки недоступны — молча игнорируем.
-  });
+  Linking.openSettings().catch(() => {});
 }
 
 export default function MapScreen() {
@@ -42,8 +39,6 @@ export default function MapScreen() {
 
   const [error, setError] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-  // Состояние isAdding обновляется асинхронно, поэтому быстрые повторные longpress
-  // проверяются по ref (иначе можно добавить два маркера в одну точку).
   const isAddingRef = useRef(false);
 
   const handleLongPress = useCallback(

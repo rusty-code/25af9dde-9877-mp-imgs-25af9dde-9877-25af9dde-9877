@@ -214,14 +214,12 @@ export default function MarkerDetailsScreen() {
         ]
       );
     } catch {
-      // Если диалог недоступен, удаляем сразу.
       remove();
     }
   }, [markerId, removeMarker]);
 
   if (!marker) {
     if (isDeleting) {
-      // Маркер уже удалён — экран закроется в процессе навигации назад.
       return (
         <View style={styles.notFound}>
           <Text style={styles.notFoundText}>Маркер удалён.</Text>

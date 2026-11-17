@@ -19,7 +19,6 @@ export interface ImageListProps {
 const COLUMNS = 3;
 const GAP = 8;
 
-/** Сетка изображений маркера с кнопкой удаления. */
 export default function ImageList({ images, onRemove }: ImageListProps) {
   const { width } = useWindowDimensions();
   const itemSize = Math.max(80, Math.floor((width - GAP * (COLUMNS + 1)) / COLUMNS));

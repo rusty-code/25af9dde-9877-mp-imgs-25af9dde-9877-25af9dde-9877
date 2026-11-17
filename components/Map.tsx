@@ -20,7 +20,6 @@ import { parseMapMessage, type Marker, type UserLocation } from '../types';
 
 export interface MapProps {
   markers: Marker[];
-  /** Текущее местоположение пользователя; `null` — позиция ещё неизвестна. */
   userLocation?: UserLocation | null;
   onLongPress: (latitude: number, longitude: number) => void;
   onMarkerPress: (id: string) => void;
@@ -35,8 +34,6 @@ const WebView = RNWebView as unknown as React.ComponentType<
   WebViewProps & { ref?: React.Ref<WebViewHandle> }
 >;
 
-// HTML карты не зависит от состояния, поэтому создаём его один раз:
-// иначе на каждый рендер (каждое обновление позиции) выделялась бы новая строка.
 const MAP_SOURCE = { html: buildMapHtml() };
 
 
@@ -70,7 +67,6 @@ export default function Map({
     [inject]
   );
 
-  // Первое центрирование: по маркерам, а если их нет — на пользователе.
   const centerOnce = useCallback(
     (list: Marker[], location: UserLocation | null) => {
       if (didCenterRef.current) {

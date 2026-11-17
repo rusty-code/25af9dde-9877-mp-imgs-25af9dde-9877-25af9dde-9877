@@ -1,60 +1,40 @@
-/**
- * Общие типы приложения: маркеры, изображения и параметры навигации.
- */
-
-/** Изображение, привязанное к маркеру. */
 export interface MarkerImage {
-  /** Уникальный идентификатор изображения в локальной БД. */
   id: number;
-  /** Идентификатор маркера, к которому привязано изображение. */
   markerId: number;
-  /** Локальный URI файла изображения. */
   uri: string;
-  /** Время добавления (мс). */
   createdAt: number;
 }
 
-/** Точка на карте. Изображения загружаются отдельно по markerId. */
 export interface Marker {
-  /** Уникальный идентификатор маркера в локальной БД. */
   id: number;
   latitude: number;
   longitude: number;
-  /** Подпись маркера (формируется из id). */
   title: string;
-  /** Время создания (мс). */
   createdAt: number;
 }
 
-/** Данные маркера, которые передаются в WebView с картой. */
 export interface MapMarker {
-  /** В WebView идентификатор передаётся строкой. */
   id: string;
   latitude: number;
   longitude: number;
   title: string;
 }
 
-/** Текущее местоположение пользователя (для карты). */
 export interface UserLocation {
   latitude: number;
   longitude: number;
-  /** Радиус точности в метрах (если известен). */
   accuracy: number | null;
 }
 
-/** Параметры маршрута экрана деталей маркера. */
 export interface MarkerDetailsParams {
   id: string;
 }
 
-/** Типизация маршрутов приложения. */
 export type RootStackParamList = {
   index: undefined;
   'marker/[id]': MarkerDetailsParams;
 };
 
-/** Сообщения, которые приходят из WebView с картой. */
 export type MapMessage =
   | { type: 'ready' }
   | { type: 'longpress'; latitude: number; longitude: number }
@@ -62,15 +42,10 @@ export type MapMessage =
   | { type: 'linkpress'; url: string }
   | { type: 'error'; message: string };
 
-/** Проверяет, что значение является конечным числом. */
 export function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
-/**
- * Разбирает положительный целочисленный идентификатор.
- * Подходит для id из БД, route-параметров и сообщений WebView.
- */
 export function parsePositiveInteger(value: unknown): number | null {
   if (typeof value === 'number') {
     return Number.isSafeInteger(value) && value > 0 ? value : null;
@@ -82,10 +57,6 @@ export function parsePositiveInteger(value: unknown): number | null {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
-/**
- * Разбирает и валидирует сообщение из WebView.
- * Возвращает `null`, если сообщение некорректное.
- */
 export function parseMapMessage(raw: string): MapMessage | null {
   let data: unknown;
   try {
@@ -137,7 +108,6 @@ export function parseMapMessage(raw: string): MapMessage | null {
   }
 }
 
-/** Формирует подпись с координатами. */
 export function formatCoordinates(latitude: number, longitude: number): string {
   return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
 }

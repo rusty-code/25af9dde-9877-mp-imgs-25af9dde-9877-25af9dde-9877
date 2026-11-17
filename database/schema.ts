@@ -2,10 +2,8 @@ import { openDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
 
 import { logDatabaseOperation, toDatabaseError } from './errors';
 
-/** Имя файла локальной базы данных. */
 export const DATABASE_NAME = 'markers.db';
 
-/** Текущая версия схемы. */
 export const DATABASE_VERSION = 1;
 
 const CREATE_MARKERS_TABLE = `
@@ -32,10 +30,6 @@ const CREATE_MARKER_IMAGES_INDEX = `
     ON marker_images (marker_id);
 `;
 
-/**
- * Открывает БД, включает внешние ключи и применяет миграции схемы.
- * Для текущей версии существует только миграция 0 -> 1.
- */
 export async function initDatabase(): Promise<SQLiteDatabase> {
   let database: SQLiteDatabase | null = null;
 
@@ -43,8 +37,6 @@ export async function initDatabase(): Promise<SQLiteDatabase> {
     const openedDatabase = await openDatabaseAsync(DATABASE_NAME);
     database = openedDatabase;
 
-    // PRAGMA foreign_keys действует в рамках соединения, поэтому включаем его
-    // при каждом открытии БД. Без этого ON DELETE CASCADE не сработает.
     await openedDatabase.execAsync('PRAGMA foreign_keys = ON;');
 
     const versionRow = await openedDatabase.getFirstAsync<{ user_version: number }>(

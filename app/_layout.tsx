@@ -7,7 +7,6 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DatabaseProvider } from '../context/DatabaseContext';
 import { configureNotificationHandler } from '../services/notifications';
 
-// Показываем уведомления о приближении, пока приложение на переднем плане.
 configureNotificationHandler();
 
 export default function RootLayout() {
@@ -24,7 +23,6 @@ export default function RootLayout() {
   );
 }
 
-/** Экран ошибки для непредвиденных исключений в маршрутах. */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   return (
     <View style={styles.container}>

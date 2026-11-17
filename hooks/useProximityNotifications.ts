@@ -13,13 +13,9 @@ import {
 import type { Marker, UserLocation } from '../types';
 
 export interface UseProximityNotificationsResult {
-  /** Разрешение на уведомления получено, слежение за зонами активно. */
   notificationsEnabled: boolean;
-  /** Пользователь запретил уведомления. */
   permissionDenied: boolean;
-  /** Текст ошибки для UI. */
   error: string | null;
-  /** Повторно запрашивает разрешение на уведомления. */
   retryPermission: () => void;
   clearError: () => void;
 }
@@ -31,10 +27,6 @@ function toErrorMessage(error: unknown): string {
   return String(error);
 }
 
-/**
- * Следит за зонами вокруг меток: уведомляет при входе в радиус
- * ENTER_ZONE_RADIUS_M и снимает уведомление при выходе за EXIT_ZONE_RADIUS_M.
- */
 export function useProximityNotifications(
   location: UserLocation | null,
   markers: Marker[]
@@ -44,13 +36,9 @@ export function useProximityNotifications(
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
 
-  /** Метки, уведомления о которых уже показаны (мы «внутри зоны»). */
   const insideZoneRef = useRef<Set<number>>(new Set());
-  /** Метки, для которых показ уведомления упал: не повторяем на каждом апдейте. */
   const failedRef = useRef<Set<number>>(new Set());
 
-  // При уходе с экрана прекращаем слежение: висящие уведомления снимаем,
-  // а состояние зон забываем (в памяти оно не сохраняется).
   useEffect(() => {
     return () => {
       insideZoneRef.current.clear();
@@ -95,7 +83,6 @@ export function useProximityNotifications(
 
   useEffect(() => refreshPermissions(), [attempt, refreshPermissions]);
 
-  // Разрешение могли выдать или отозвать, пока приложение было в фоне.
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
@@ -107,7 +94,6 @@ export function useProximityNotifications(
     return () => subscription.remove();
   }, [refreshPermissions]);
 
-  // Уведомления удалённых меток нужно снять, даже если позиция не менялась.
   useEffect(() => {
     if (!notificationsEnabled) {
       return;
@@ -138,9 +124,6 @@ export function useProximityNotifications(
 
     let cancelled = false;
 
-    // Проход синхронный: показ уведомлений не ждём, дубликаты отсекает
-    // NotificationManager (резервирование слота до await). Так новое
-    // обновление позиции никогда не «теряется» из-за занятого прохода.
     for (const marker of markers) {
       if (failedRef.current.has(marker.id)) {
         continue;
@@ -165,7 +148,6 @@ export function useProximityNotifications(
         });
       } else if (isInside && distance > EXIT_ZONE_RADIUS_M) {
         insideZoneRef.current.delete(marker.id);
-        // Вернувшись в зону, пользователь должен получить уведомление снова.
         failedRef.current.delete(marker.id);
         notificationManager.removeNotification(marker.id).catch((exception) => {
           if (__DEV__) {

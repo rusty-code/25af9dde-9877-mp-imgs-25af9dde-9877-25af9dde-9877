@@ -6,7 +6,6 @@ export interface ErrorBannerProps {
   onDismiss?: () => void;
 }
 
-/** Простое сообщение об ошибке с возможностью закрыть. */
 export default function ErrorBanner({ message, onDismiss }: ErrorBannerProps) {
   return (
     <View style={styles.container}>

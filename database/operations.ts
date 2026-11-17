@@ -17,7 +17,6 @@ interface MarkerImageRow {
   created_at: string | number | null;
 }
 
-/** Преобразует SQLite-дату (обычно UTC-строку) в миллисекунды. */
 function parseSqliteDate(value: string | number | null): number {
   if (typeof value === 'number') {
     return Number.isFinite(value) ? value : Date.now();
@@ -54,7 +53,6 @@ function mapImageRow(row: MarkerImageRow): MarkerImage {
   };
 }
 
-/** Создаёт маркер и возвращает его id. */
 export async function insertMarker(
   db: SQLiteDatabase,
   latitude: number,
@@ -86,7 +84,6 @@ export async function insertMarker(
   }
 }
 
-/** Возвращает все маркеры в порядке создания. */
 export async function selectMarkers(db: SQLiteDatabase): Promise<Marker[]> {
   try {
     const rows = await db.getAllAsync<MarkerRow>(
@@ -99,10 +96,6 @@ export async function selectMarkers(db: SQLiteDatabase): Promise<Marker[]> {
   }
 }
 
-/**
- * Удаляет маркер и связанные изображения в одной транзакции.
- * Явное удаление изображений оставлено как страховка в дополнение к CASCADE.
- */
 export async function deleteMarkerCascade(
   db: SQLiteDatabase,
   id: number
@@ -122,7 +115,6 @@ export async function deleteMarkerCascade(
   }
 }
 
-/** Добавляет изображение к существующему маркеру и возвращает его id. */
 export async function insertImage(
   db: SQLiteDatabase,
   markerId: number,
@@ -157,7 +149,6 @@ export async function insertImage(
   }
 }
 
-/** Удаляет изображение по id. */
 export async function deleteImageById(
   db: SQLiteDatabase,
   id: number
@@ -176,7 +167,6 @@ export async function deleteImageById(
   }
 }
 
-/** Возвращает изображения конкретного маркера. */
 export async function selectImagesByMarker(
   db: SQLiteDatabase,
   markerId: number

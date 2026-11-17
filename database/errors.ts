@@ -1,4 +1,3 @@
-/** Логирует операцию с БД в режиме разработки. */
 export function logDatabaseOperation(
   action: string,
   details?: Record<string, unknown>
@@ -8,7 +7,6 @@ export function logDatabaseOperation(
   }
 }
 
-/** Единый формат ошибок слоя базы данных. */
 export function toDatabaseError(action: string, cause: unknown): Error {
   if (__DEV__) {
     console.error(`[db] ${action}`, cause);

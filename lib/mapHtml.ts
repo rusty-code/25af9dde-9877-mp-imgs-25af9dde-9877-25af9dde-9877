@@ -1,18 +1,8 @@
 import type { MapMarker, Marker, UserLocation } from '../types';
 
-/** Начальный центр карты (Москва) и зум. */
 export const DEFAULT_CENTER = { latitude: 55.751244, longitude: 37.618423 };
 export const DEFAULT_ZOOM = 12;
 
-/**
- * HTML-документ с Leaflet и тайлами OpenStreetMap.
- *
- * Внутри WebView доступны:
- * - `window.__setMarkers(markers)` — обновление маркеров из React Native;
- * - `window.__setUserLocation(location)` — обновление позиции пользователя;
- * - `window.__centerOnUser(zoom)` — центрирование карты на пользователе;
- * - `window.ReactNativeWebView.postMessage(...)` — события в React Native.
- */
 export function buildMapHtml(): string {
   return `<!DOCTYPE html>
 <html lang="ru">
@@ -91,14 +81,12 @@ export function buildMapHtml(): string {
         var markersLayer = L.layerGroup().addTo(map);
         var markersById = {};
 
-        // Слой текущего местоположения пользователя: точка + круг точности.
         var userLocationLayer = L.layerGroup().addTo(map);
         var userDot = null;
         var userAccuracyCircle = null;
         var lastUserLocation = null;
 
         function renderUserLocation(location) {
-          // Позиция пропала — убираем точку и круг точности.
           if (!location) {
             lastUserLocation = null;
             userLocationLayer.clearLayers();
@@ -215,17 +203,13 @@ export function buildMapHtml(): string {
           return !!target && typeof target.closest === 'function' && !!target.closest('.leaflet-marker-icon');
         }
 
-        // Долгое нажатие по карте: на тач-устройствах Leaflet генерирует 'contextmenu'.
         map.on('contextmenu', function (event) {
           if (isMarkerTarget(event.originalEvent && event.originalEvent.target)) {
             return;
           }
-          // Не дублируем событие, если его уже отправил собственный обработчик долгого нажатия.
           if (Date.now() - lastSyntheticLongPressAt < 1000) {
             return;
           }
-          // contextmenu может прийти раньше таймера 600 мс: гасим таймер и помечаем
-          // момент, чтобы второе событие не ушло.
           cancelPress();
           lastSyntheticLongPressAt = Date.now();
           post({
@@ -235,13 +219,10 @@ export function buildMapHtml(): string {
           });
         });
 
-        // Собственный обработчик долгого нажатия (надёжно работает на Android и iOS).
         var pressTimer = null;
         var pressStart = null;
         var pressStartLatLng = null;
 
-        // Объявлена как function declaration: поднимается, поэтому безопасно вызывать
-        // её из обработчика contextmenu, зарегистрированного выше.
         function cancelPress() {
           if (pressTimer !== null) {
             clearTimeout(pressTimer);
@@ -294,7 +275,6 @@ export function buildMapHtml(): string {
             }
             var dx = Math.abs(touch.clientX - pressStart.x);
             var dy = Math.abs(touch.clientY - pressStart.y);
-            // Если палец сдвинулся — это панорамирование, а не долгое нажатие.
             if (dx > 10 || dy > 10) {
               cancelPress();
             }
@@ -305,7 +285,6 @@ export function buildMapHtml(): string {
         container.addEventListener('touchend', cancelPress, { passive: true });
         container.addEventListener('touchcancel', cancelPress, { passive: true });
 
-        // Ссылки в атрибуции открываем во внешнем браузере, чтобы не терять карту.
         document.addEventListener('click', function (event) {
           var target = event.target;
           var anchor = target && typeof target.closest === 'function' ? target.closest('a') : null;
@@ -315,7 +294,6 @@ export function buildMapHtml(): string {
           }
         });
 
-        // Центрируем карту на существующих маркерах при первой отрисовке.
         window.__centerOnMarkers = function (markers) {
           if (!markers || !markers.length) {
             return;
@@ -335,7 +313,6 @@ export function buildMapHtml(): string {
 </html>`;
 }
 
-/** Скрипт для передачи маркеров из React Native в WebView. */
 export function buildSetMarkersScript(markers: Marker[]): string {
   const payload = JSON.stringify(
     markers.map(
@@ -350,7 +327,6 @@ export function buildSetMarkersScript(markers: Marker[]): string {
   return `window.__setMarkers && window.__setMarkers(${payload}); true;`;
 }
 
-/** Скрипт для передачи позиции пользователя в WebView. */
 export function buildSetUserLocationScript(location: UserLocation | null): string {
   const payload = location
     ? JSON.stringify({
@@ -362,12 +338,10 @@ export function buildSetUserLocationScript(location: UserLocation | null): strin
   return `window.__setUserLocation && window.__setUserLocation(${payload}); true;`;
 }
 
-/** Скрипт для центрирования карты на пользователе. */
 export function buildCenterOnUserScript(zoom = 15): string {
   return `window.__centerOnUser && window.__centerOnUser(${zoom}); true;`;
 }
 
-/** Скрипт для первичного центрирования карты по маркерам. */
 export function buildCenterOnMarkersScript(
   markers: Array<Pick<Marker, 'latitude' | 'longitude'>>
 ): string {

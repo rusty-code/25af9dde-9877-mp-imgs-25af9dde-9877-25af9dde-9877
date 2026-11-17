@@ -14,19 +14,13 @@ import type { UserLocation } from '../types';
 
 export interface UseUserLocationResult {
   location: UserLocation | null;
-  /** Идёт первичный запрос разрешений и запуск отслеживания. */
   isLoading: boolean;
-  /** Пользователь запретил доступ к геолокации. */
   permissionDenied: boolean;
-  /** Текст ошибки для UI. */
   error: string | null;
-  /** Повторно запрашивает разрешение и перезапускает отслеживание. */
   retry: () => void;
-  /** Сбрасывает текст ошибки. */
   clearError: () => void;
 }
 
-/** Как часто пробуем получить разовый фикс, пока подписка молчит. */
 const FALLBACK_POLL_INTERVAL_MS = 15000;
 
 function toErrorMessage(error: unknown): string {
@@ -36,13 +30,6 @@ function toErrorMessage(error: unknown): string {
   return String(error);
 }
 
-/**
- * Подписывается на позицию пользователя, пока приложение активно.
- *
- * Дополнительно делает разовый запрос позиции. Это страховка от ситуации, когда
- * `watchPositionAsync` подписался, но коллбэки не приходят (типично для Android:
- * позиция не менялась или fused-провайдеру не хватает данных).
- */
 export function useUserLocation(): UseUserLocationResult {
   const [location, setLocation] = useState<UserLocation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,7 +37,6 @@ export function useUserLocation(): UseUserLocationResult {
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
 
-  // Нужен в слушателе AppState, чтобы не перезапускать подписку зря.
   const hasLocationRef = useRef(false);
 
   useEffect(() => {
@@ -121,11 +107,8 @@ export function useUserLocation(): UseUserLocationResult {
           return;
         }
 
-        // Разовый запрос: кэш ОС → свежий фикс. Показываем позицию сразу,
-        // не дожидаясь первого коллбэка подписки.
         void getInitialLocation().then(applyLocation);
 
-        // Пока подписка молчит, периодически пробуем разовый фикс.
         fallbackTimer = setInterval(() => {
           if (cancelled) {
             return;
@@ -158,8 +141,6 @@ export function useUserLocation(): UseUserLocationResult {
     };
   }, [attempt]);
 
-  // После возврата из фона подписка могла перестать отдавать обновления,
-  // а позиции так и нет — перезапускаем отслеживание.
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active' && !hasLocationRef.current) {
