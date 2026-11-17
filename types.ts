@@ -4,33 +4,36 @@
 
 /** Изображение, привязанное к маркеру. */
 export interface MarkerImage {
-  /** Уникальный идентификатор изображения. */
-  id: string;
+  /** Уникальный идентификатор изображения в локальной БД. */
+  id: number;
+  /** Идентификатор маркера, к которому привязано изображение. */
+  markerId: number;
   /** Локальный URI файла изображения. */
   uri: string;
-  /** Ширина в пикселях (если известна). */
-  width: number | null;
-  /** Высота в пикселях (если известна). */
-  height: number | null;
   /** Время добавления (мс). */
   createdAt: number;
 }
 
-/** Точка на карте с привязанными изображениями. */
+/** Точка на карте. Изображения загружаются отдельно по markerId. */
 export interface Marker {
-  id: string;
+  /** Уникальный идентификатор маркера в локальной БД. */
+  id: number;
   latitude: number;
   longitude: number;
-  /** Подпись маркера. */
+  /** Подпись маркера (формируется из id). */
   title: string;
   /** Время создания (мс). */
   createdAt: number;
-  /** Список изображений маркера. */
-  images: MarkerImage[];
 }
 
 /** Данные маркера, которые передаются в WebView с картой. */
-export type MapMarker = Pick<Marker, 'id' | 'latitude' | 'longitude' | 'title'>;
+export interface MapMarker {
+  /** В WebView идентификатор передаётся строкой. */
+  id: string;
+  latitude: number;
+  longitude: number;
+  title: string;
+}
 
 /** Параметры маршрута экрана деталей маркера. */
 export interface MarkerDetailsParams {
@@ -54,6 +57,21 @@ export type MapMessage =
 /** Проверяет, что значение является конечным числом. */
 export function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
+}
+
+/**
+ * Разбирает положительный целочисленный идентификатор.
+ * Подходит для id из БД, route-параметров и сообщений WebView.
+ */
+export function parsePositiveInteger(value: unknown): number | null {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+  if (typeof value !== 'string' || !/^\d+$/.test(value)) {
+    return null;
+  }
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
 /**

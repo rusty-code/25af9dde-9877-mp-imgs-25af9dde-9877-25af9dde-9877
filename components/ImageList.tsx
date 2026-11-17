@@ -13,7 +13,7 @@ import type { MarkerImage } from '../types';
 
 export interface ImageListProps {
   images: MarkerImage[];
-  onRemove: (imageId: string) => void;
+  onRemove: (imageId: number) => void;
 }
 
 const COLUMNS = 3;
@@ -32,7 +32,7 @@ export default function ImageList({ images, onRemove }: ImageListProps) {
     <FlatList
       data={images}
       numColumns={COLUMNS}
-      keyExtractor={(item) => item.id}
+      keyExtractor={(item) => String(item.id)}
       scrollEnabled={false}
       columnWrapperStyle={styles.row}
       renderItem={({ item, index }) => (

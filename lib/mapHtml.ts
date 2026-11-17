@@ -1,4 +1,4 @@
-import type { MapMarker } from '../types';
+import type { MapMarker, Marker } from '../types';
 
 /** Начальный центр карты (Москва) и зум. */
 export const DEFAULT_CENTER = { latitude: 55.751244, longitude: 37.618423 };
@@ -245,15 +245,24 @@ export function buildMapHtml(): string {
 }
 
 /** Скрипт для передачи маркеров из React Native в WebView. */
-export function buildSetMarkersScript(markers: MapMarker[]): string {
+export function buildSetMarkersScript(markers: Marker[]): string {
   const payload = JSON.stringify(
-    markers.map(({ id, latitude, longitude, title }) => ({ id, latitude, longitude, title }))
+    markers.map(
+      ({ id, latitude, longitude, title }): MapMarker => ({
+        id: String(id),
+        latitude,
+        longitude,
+        title,
+      })
+    )
   );
   return `window.__setMarkers && window.__setMarkers(${payload}); true;`;
 }
 
 /** Скрипт для первичного центрирования карты по маркерам. */
-export function buildCenterOnMarkersScript(markers: MapMarker[]): string {
+export function buildCenterOnMarkersScript(
+  markers: Array<Pick<Marker, 'latitude' | 'longitude'>>
+): string {
   const payload = JSON.stringify(
     markers.map(({ latitude, longitude }) => ({ latitude, longitude }))
   );

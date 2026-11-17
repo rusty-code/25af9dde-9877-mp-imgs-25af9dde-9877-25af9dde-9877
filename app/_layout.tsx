@@ -4,18 +4,18 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { MarkersProvider } from '../context/MarkersContext';
+import { DatabaseProvider } from '../context/DatabaseContext';
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <MarkersProvider>
+      <DatabaseProvider>
         <StatusBar style="dark" />
         <Stack>
           <Stack.Screen name="index" options={{ title: 'Карта' }} />
           <Stack.Screen name="marker/[id]" options={{ title: 'Маркер' }} />
         </Stack>
-      </MarkersProvider>
+      </DatabaseProvider>
     </SafeAreaProvider>
   );
 }

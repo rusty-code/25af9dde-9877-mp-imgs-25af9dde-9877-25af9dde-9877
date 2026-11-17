@@ -4,8 +4,8 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import ErrorBanner from '../components/ErrorBanner';
 import Map from '../components/Map';
-import { useMarkers } from '../context/MarkersContext';
-
+import { useDatabase } from '../context/DatabaseContext';
+import { parsePositiveInteger } from '../types';
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message) {
@@ -15,27 +15,41 @@ function toErrorMessage(error: unknown): string {
 }
 
 export default function MapScreen() {
-  const { markers, addMarker } = useMarkers();
+  const { markers, addMarker } = useDatabase();
   const [error, setError] = useState<string | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
 
   const handleLongPress = useCallback(
     (latitude: number, longitude: number) => {
-      try {
-        addMarker(latitude, longitude);
-        setError(null);
-      } catch (exception) {
-        setError(`Не удалось добавить маркер: ${toErrorMessage(exception)}`);
+      if (isAdding) {
+        return;
       }
+
+      setIsAdding(true);
+      setError(null);
+
+      addMarker(latitude, longitude)
+        .then(() => {
+          setError(null);
+        })
+        .catch((exception) => {
+          setError(`Не удалось добавить маркер: ${toErrorMessage(exception)}`);
+        })
+        .finally(() => {
+          setIsAdding(false);
+        });
     },
-    [addMarker]
+    [addMarker, isAdding]
   );
 
   const openMarker = useCallback(
-    (id: string) => {
-      if (!markers.some((marker) => marker.id === id)) {
+    (rawId: string) => {
+      const id = parsePositiveInteger(rawId);
+      if (id === null || !markers.some((marker) => marker.id === id)) {
         setError('Маркер не найден. Возможно, он был удалён.');
         return;
       }
+
       try {
         router.push(`/marker/${id}`);
       } catch (exception) {
@@ -57,6 +71,7 @@ export default function MapScreen() {
         <Text style={styles.hintText}>
           Маркеров: {markers.length}. Долгое нажатие по карте добавляет маркер, нажатие на маркер
           открывает его детали.
+          {isAdding ? ' Добавление…' : ''}
         </Text>
       </View>
     </View>
